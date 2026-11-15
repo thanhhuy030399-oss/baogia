@@ -29,6 +29,7 @@ header{padding-top:env(safe-area-inset-top);background:var(--hbg,#211c17);color:
 nav{display:flex;gap:4px;margin-left:auto;background:var(--hnav,rgba(255,255,255,.08));padding:4px;border-radius:12px}
 nav button{border:0;background:transparent;padding:8px 16px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer;color:var(--hmute,#c9bda8);display:flex;align-items:center;gap:7px}
 nav button svg{width:16px;height:16px}
+nav button.gear{padding:8px 11px}nav button.gear svg{width:18px;height:18px}
 nav button.on{background:var(--hon,#f3ece0);color:var(--honT,#211c17);font-weight:600}
 main{max-width:1240px;margin:0 auto;padding:22px 24px 90px}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
@@ -126,6 +127,7 @@ td input,td select{margin:0;padding:7px 9px}
 body.locked>header,body.locked>main,body.locked .mbar{display:none!important}
 .lic-list{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
 .lic-list td,.lic-list th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.lic-list tr.lr{cursor:pointer}.lic-list tr.lr:hover td{background:var(--acc-bg)}.lic-list tr.lr.open td{background:var(--acc-bg)}.lic-list .cd{font-family:var(--mono,monospace);letter-spacing:1px;white-space:nowrap}.lic-det td{background:#fbf8f3;padding:12px 8px}
 .codebox{font-family:var(--mono,monospace);font-size:20px;letter-spacing:2px;background:var(--acc-bg);color:var(--acc-d);padding:10px 14px;border-radius:10px;display:inline-block;margin:6px 0}
 .top{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start}
 .top>.card{height:calc(100% - 18px)}
@@ -187,7 +189,7 @@ body.dragmode{cursor:grabbing;user-select:none}
 @media(max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.side{position:static}}
 @media(max-width:640px){
   .hin{padding:10px 14px}main{padding:14px 12px 100px}.card{padding:16px}
-  nav{margin-left:0;width:100%}nav button{flex:1;justify-content:center;padding:8px 6px}
+  nav{margin-left:0;width:100%}nav button{flex:1;justify-content:center;padding:8px 6px}nav button.gear{flex:0 0 auto;padding:8px 12px}
   .adder{grid-template-columns:repeat(2,minmax(0,1fr))}.adder .s2{grid-column:span 1}.adder .s3{grid-column:span 2}
   .dm{display:none}.mm{display:block!important}
   .pvbar{padding:10px 12px;flex-wrap:wrap}
@@ -224,6 +226,7 @@ body.dragmode{cursor:grabbing;user-select:none}
  <symbol id="i-xls" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 12l4 5M13 12l-4 5"/></symbol>
  <symbol id="i-gs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M8 11h8v6H8zM8 14h8M12 11v6"/></symbol>
  <symbol id="i-grip" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></symbol>
+ <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4.3c.4-1.8 3-1.8 3.4 0a1.7 1.7 0 0 0 2.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 0 0 1 2.5c1.8.4 1.8 3 0 3.4a1.7 1.7 0 0 0-1 2.6c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 0 0-2.6 1c-.4 1.8-3 1.8-3.4 0a1.7 1.7 0 0 0-2.5-1c-1.6.9-3.3-.9-2.4-2.4a1.7 1.7 0 0 0-1.1-2.6c-1.8-.4-1.8-3 0-3.4a1.7 1.7 0 0 0 1.1-2.5c-.9-1.6.8-3.3 2.4-2.4a1.7 1.7 0 0 0 2.5-1.1z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/></symbol>
  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
  <symbol id="i-sofa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a2 2 0 0 1 2 2v1h12v-1a2 2 0 1 1 4 0v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2"/><path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3M12 5v9"/></symbol>
 </svg>
@@ -235,6 +238,7 @@ body.dragmode{cursor:grabbing;user-select:none}
     <button data-t="quote" class="on"><svg><use href="#i-doc"/></svg>Báo giá</button>
     <button data-t="prices"><svg><use href="#i-tag"/></svg>Bảng giá</button>
     <button data-t="history"><svg><use href="#i-hist"/></svg>Lịch sử</button>
+    <button data-t="settings" class="gear" title="Cài đặt và quản lý mã" aria-label="Cài đặt"><svg><use href="#i-gear"/></svg></button>
   </nav>
   <button class="btn sm hide" id="installBtn" style="margin-left:4px">Cài ứng dụng</button>
 </div></header>
@@ -371,6 +375,12 @@ body.dragmode{cursor:grabbing;user-select:none}
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="bkExport"><svg><use href="#i-pdf"/></svg>Tải file sao lưu</button><button class="btn" id="bkImport"><svg><use href="#i-new"/></svg>Khôi phục từ file</button><input type="file" id="bkFile" accept=".json,application/json" class="hide"></div>
     <div class="msg" id="bkMsg"></div>
   </div>
+  <div style="display:flex;justify-content:flex-end"><button class="btn p" id="savePrices"><svg><use href="#i-save"/></svg>Lưu bảng giá</button></div>
+  <div class="msg" id="pMsg" style="text-align:right"></div>
+</section>
+
+<!-- SETTINGS -->
+<section id="t-settings" class="hide">
   <div class="card" id="licCard">
     <div class="ch"><h2>Mã kích hoạt</h2></div>
     <div id="licInfo" class="muted"></div>
@@ -381,12 +391,10 @@ body.dragmode{cursor:grabbing;user-select:none}
       <div class="grid"><label>Tên người dùng<input id="nmName" placeholder="Anh Tuấn - thợ đo"></label><label>Hạn dùng (để trống = không hạn)<input id="nmExp" type="date"></label></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn p" id="nmCreate">Tạo mã mới</button><button class="btn" id="nmCopy">Sao chép codes.json</button><a class="btn" id="nmEdit" href="https://github.com/thanhhuy030399-oss/baogia/edit/main/codes.json" target="_blank" rel="noopener" style="text-decoration:none">Mở codes.json trên GitHub</a></div>
       <div id="nmNew" class="msg"></div>
-      <table class="lic-list"><thead><tr><th>Người dùng</th><th>Hạn dùng</th><th>Quyền</th><th></th></tr></thead><tbody id="licRows"></tbody></table>
+      <p class="muted" style="margin:14px 0 0;font-size:13px">Bấm vào một người dùng để xem mã của họ.</p><div class="scroll"><table class="lic-list"><thead><tr><th>Người dùng</th><th>Mã</th><th>Hạn dùng</th><th>Quyền</th><th></th></tr></thead><tbody id="licRows"></tbody></table></div>
       <div class="msg" id="licMsg"></div>
     </div>
   </div>
-  <div style="display:flex;justify-content:flex-end"><button class="btn p" id="savePrices"><svg><use href="#i-save"/></svg>Lưu bảng giá</button></div>
-  <div class="msg" id="pMsg" style="text-align:right"></div>
 </section>
 
 <!-- HISTORY -->
@@ -647,8 +655,8 @@ function msg(id,text,kind){const el=$(id);el.textContent=text;el.className='msg 
 /* tabs */
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  ['quote','prices','history'].forEach(t=>$('t-'+t).classList.toggle('hide',t!==b.dataset.t));
-  if(b.dataset.t==='prices')renderPriceEditor();
+  ['quote','prices','history','settings'].forEach(t=>$('t-'+t).classList.toggle('hide',t!==b.dataset.t));
+  if(b.dataset.t==='prices')renderPriceEditor();if(b.dataset.t==='settings')renderLicense();
   window.scrollTo(0,0);
 });
 
@@ -1078,32 +1086,56 @@ async function activate(){
   }finally{$('gBtn').disabled=false;}
 }
 $('gBtn').onclick=activate;$('gCode').addEventListener('keydown',e=>{if(e.key==='Enter')activate();});$('gCode').addEventListener('input',()=>{$('gMsg').textContent='';});
-let editCodes=null;
+let editCodes=null,codeBook={},openCode=-1;
+const fmtCode=c=>{c=normCode(c);return c.length===11?c.slice(0,3)+'-'+c.slice(3,7)+'-'+c.slice(7):c;};
+try{codeBook=JSON.parse(localStorage.getItem('bg_codebook')||'{}')||{};}catch(e){codeBook={};}
+function saveBookLocal(){try{localStorage.setItem('bg_codebook',JSON.stringify(codeBook));}catch(e){}}
+let bookLoaded=false;
+async function loadCodeBook(){
+  if(license&&license.c&&license.h)codeBook[license.h]=license.c;
+  if(!CLOUD_URL||!license||!license.admin)return;
+  try{const j=await cloud('getCodeBook');const b=j.book||{};let add={};
+    for(const h in codeBook)if(!b[h])add[h]=codeBook[h];
+    Object.assign(codeBook,b);saveBookLocal();bookLoaded=true;
+    if(Object.keys(add).length)cloud('saveCodeBook',{book:add,names:Object.fromEntries((editCodes||[]).filter(x=>add[x.h]).map(x=>[x.h,x.ten||'']))}).catch(()=>{});
+  }catch(e){}
+  if(editCodes)renderCodeRows();
+}
 function renderLicense(){
   if(!license)return;
   $('licInfo').innerHTML=`Máy này đang dùng mã của <b>${esc(license.ten||'—')}</b> · hạn dùng: <b>${esc(fmtD(license.han))}</b>${license.admin?' · <span class="tag">Chủ xưởng</span>':''}`;
   $('licAdmin').classList.toggle('hide',!license.admin);
-  if(license.admin){if(!editCodes)editCodes=JSON.parse(JSON.stringify(codeList||[]));renderCodeRows();}
+  if(license.admin){if(!editCodes)editCodes=JSON.parse(JSON.stringify(codeList||[]));renderCodeRows();if(!bookLoaded)loadCodeBook();}
 }
 function renderCodeRows(){
-  $('licRows').innerHTML=editCodes.map((c,i)=>`<tr><td>${esc(c.ten||'—')}</td><td>${esc(fmtD(c.han||''))}${c.han&&c.han<todayStr()?' <span class="tag" style="background:#fbeeea;color:var(--err)">Hết hạn</span>':''}</td><td>${c.admin?'Chủ xưởng':'Người dùng'}</td><td style="text-align:right">${c.h===license.h?'<span class="muted">Máy này</span>':`<button class="btn sm" data-revoke="${i}">Thu hồi</button>`}</td></tr>`).join('');
+  $('licRows').innerHTML=editCodes.map((c,i)=>{const code=codeBook[c.h]?fmtCode(codeBook[c.h]):'';
+    const row=`<tr class="lr${openCode===i?' open':''}" data-crow="${i}"><td><b>${esc(c.ten||'—')}</b></td><td class="cd">${code?(openCode===i?esc(code):'MOC-••••-'+esc(code.slice(-4))):'<span class="muted">—</span>'}</td><td>${esc(fmtD(c.han||''))}${c.han&&c.han<todayStr()?' <span class="tag" style="background:#fbeeea;color:var(--err)">Hết hạn</span>':''}</td><td>${c.admin?'Chủ xưởng':'Người dùng'}</td><td style="text-align:right">${c.h===license.h?'<span class="muted">Máy này</span>':`<button class="btn sm" data-revoke="${i}">Thu hồi</button>`}</td></tr>`;
+    const det=openCode!==i?'':`<tr class="lic-det"><td colspan="5">${code?`Mã của <b>${esc(c.ten||'')}</b>:<br><span class="codebox">${esc(code)}</span><br><button class="btn sm" data-ccopy="${esc(code)}"><svg><use href="#i-copy"/></svg>Sao chép mã</button> <button class="btn sm" data-cshare="${i}">Sao chép lời nhắn gửi kèm</button>`:'<span class="muted">Không có mã gốc của người này trên hệ thống (mã được tạo trước khi có tính năng lưu mã). Nếu cần, hãy thu hồi và tạo mã mới cho họ.</span>'}</td></tr>`;
+    return row+det;}).join('');
 }
+document.addEventListener('click',async e=>{
+  const cp=e.target.closest('[data-ccopy]');if(cp){e.stopPropagation();try{await navigator.clipboard.writeText(cp.dataset.ccopy);msg('licMsg','Đã sao chép mã '+cp.dataset.ccopy,'o');}catch(x){msg('licMsg','Không sao chép được, hãy chép tay mã ở trên.','e');}return;}
+  const sh=e.target.closest('[data-cshare]');if(sh){const c=editCodes[+sh.dataset.cshare];const code=fmtCode(codeBook[c.h]||'');const t=`Chào ${c.ten||''}, đây là mã kích hoạt app báo giá: ${code}\nMở link ${location.origin+location.pathname} rồi nhập mã để dùng.${c.han?'\nHạn dùng đến '+fmtD(c.han)+'.':''}`;try{await navigator.clipboard.writeText(t);msg('licMsg','Đã sao chép lời nhắn, dán vào Zalo để gửi.','o');}catch(x){msg('licMsg','Không sao chép được trên trình duyệt này.','e');}return;}
+  if(e.target.closest('[data-revoke]'))return;
+  const r=e.target.closest('[data-crow]');if(!r)return;const i=+r.dataset.crow;openCode=openCode===i?-1:i;renderCodeRows();
+});
 const CODE_AB='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode(){const r=crypto.getRandomValues(new Uint8Array(8));const s=Array.from(r).map(x=>CODE_AB[x%CODE_AB.length]).join('');return 'MOC-'+s.slice(0,4)+'-'+s.slice(4);}
 function codesJSON(){return '[\n'+editCodes.map(c=>'  '+JSON.stringify(c)).join(',\n')+'\n]\n';}
 $('nmCreate').onclick=async()=>{
   const ten=$('nmName').value.trim();if(!ten){msg('licMsg','Nhập tên người dùng trước.','e');$('nmName').focus();return;}
   const code=newCode(),h=await hashCode(code),han=$('nmExp').value||'';
-  const o={h,ten};if(han)o.han=han;editCodes.push(o);renderCodeRows();
-  $('nmNew').className='msg o';$('nmNew').innerHTML=`Mã cho <b>${esc(ten)}</b>: <span class="codebox">${code}</span><br>Hãy ghi lại và gửi mã này cho người dùng (app không lưu mã gốc). Sau đó bấm <b>Sao chép codes.json</b> và dán vào GitHub.`;
+  const o={h,ten};if(han)o.han=han;editCodes.push(o);codeBook[h]=normCode(code);saveBookLocal();openCode=-1;renderCodeRows();
+  if(CLOUD_URL)cloud('saveCodeBook',{book:{[h]:normCode(code)},names:{[h]:ten}}).catch(()=>msg('licMsg','Chưa lưu được mã lên máy chủ (mất mạng?). Mã vẫn được giữ trên máy này.','e'));
+  $('nmNew').className='msg o';$('nmNew').innerHTML=`Mã cho <b>${esc(ten)}</b>: <span class="codebox">${code}</span><br>Mã đã được lưu, bấm vào tên người dùng trong danh sách để xem lại bất cứ lúc nào. Sau đó bấm <b>Sao chép codes.json</b> và dán vào GitHub.`;
   $('nmName').value='';$('nmExp').value='';
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-revoke]');if(!b)return;const i=+b.dataset.revoke;
   if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Bấm lại để thu hồi';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='Thu hồi';}},3000);return;}
-  editCodes.splice(i,1);renderCodeRows();msg('licMsg','Đã bỏ mã khỏi danh sách. Bấm Sao chép codes.json và dán vào GitHub để thu hồi thật.','o');});
+  editCodes.splice(i,1);openCode=-1;renderCodeRows();msg('licMsg','Đã bỏ mã khỏi danh sách. Bấm Sao chép codes.json và dán vào GitHub để thu hồi thật.','o');});
 $('nmCopy').onclick=async()=>{try{await navigator.clipboard.writeText(codesJSON());msg('licMsg','Đã sao chép. Bấm "Mở codes.json trên GitHub", xóa hết nội dung cũ, dán vào rồi bấm Commit changes.','o');}catch(e){msg('licMsg','Không sao chép được trên trình duyệt này.','e');}};
 $('licOut').onclick=()=>{if($('licOut').dataset.confirm!=='1'){$('licOut').dataset.confirm='1';$('licOut').textContent='Bấm lại để xác nhận';setTimeout(()=>{$('licOut').dataset.confirm='';$('licOut').textContent='Thoát mã trên máy này';},3000);return;}
-  localStorage.removeItem(LIC_KEY);license=null;editCodes=null;lockApp('Đã thoát mã. Nhập mã để dùng lại.');};
+  localStorage.removeItem(LIC_KEY);license=null;editCodes=null;bookLoaded=false;lockApp('Đã thoát mã. Nhập mã để dùng lại.');};
 checkLicense();
 
 /* init */
