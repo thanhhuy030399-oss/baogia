@@ -387,11 +387,11 @@ body.dragmode{cursor:grabbing;user-select:none}
     <div style="margin-top:10px"><button class="btn sm" id="licOut">Thoát mã trên máy này</button></div>
     <div id="licAdmin" class="hide" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
       <h3 style="font-size:15px;margin:0 0 6px">Quản lý mã (chỉ chủ xưởng)</h3>
-      <p class="muted" style="margin:0 0 10px">Tạo hoặc thu hồi mã ở đây, rồi bấm <b>Sao chép codes.json</b> và dán vào file <b>codes.json</b> trên GitHub. Thay đổi có hiệu lực sau khi lưu file (người dùng mở lại app có mạng).</p>
+      <p class="muted" style="margin:0 0 10px">Tạo mã mới cho nhân viên hoặc khách, mã dùng được ngay. Thu hồi mã thì máy của người đó bị khóa ở lần mở app tiếp theo.</p>
       <div class="grid"><label>Tên người dùng<input id="nmName" placeholder="Anh Tuấn - thợ đo"></label><label>Hạn dùng (để trống = không hạn)<input id="nmExp" type="date"></label></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn p" id="nmCreate">Tạo mã mới</button><button class="btn" id="nmCopy">Sao chép codes.json</button><a class="btn" id="nmEdit" href="https://github.com/thanhhuy030399-oss/baogia/edit/main/codes.json" target="_blank" rel="noopener" style="text-decoration:none">Mở codes.json trên GitHub</a></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn p" id="nmCreate">Tạo mã mới</button></div>
       <div id="nmNew" class="msg"></div>
-      <p class="muted" style="margin:14px 0 0;font-size:13px">Bấm vào một người dùng để xem mã của họ.</p><div class="scroll"><table class="lic-list"><thead><tr><th>Người dùng</th><th>Mã</th><th>Hạn dùng</th><th>Quyền</th><th></th></tr></thead><tbody id="licRows"></tbody></table></div>
+      <p class="muted" style="margin:14px 0 0;font-size:13px">Bấm vào một người dùng để xem mã của họ.</p><div class="scroll"><table class="lic-list"><thead><tr><th>Người dùng</th><th>Mã</th><th>Hạn dùng</th><th>Quyền</th><th></th></tr></thead><tbody id="licRows"></tbody></table></div><div class="muted" id="licLoad" style="font-size:13px;margin-top:6px"></div>
       <div class="msg" id="licMsg"></div>
     </div>
   </div>
@@ -1063,79 +1063,89 @@ let codeList=null,license=null;
 async function loadCodes(){try{const r=await fetch('codes.json?t='+Date.now(),{cache:'no-store'});if(r.ok){const j=await r.json();if(Array.isArray(j)){codeList=j;return j;}}}catch(e){}return null;}
 function lockApp(m){document.body.classList.add('locked');$('gate').classList.remove('hide');$('gMsg').textContent=m||'';setTimeout(()=>{try{$('gCode').focus();}catch(e){}},50);}
 function unlockApp(){document.body.classList.remove('locked');$('gate').classList.add('hide');renderLicense();}
+/* hỏi máy chủ về một mã: trả {ok..} nếu hợp lệ; ném lỗi có .srv=true nếu máy chủ từ chối; lỗi khác = mất mạng */
+async function serverCheck(code){
+  let r;try{r=await fetch(CLOUD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ping',code:normCode(code)})});}catch(e){throw new Error('offline');}
+  let j;try{j=await r.json();}catch(e){throw new Error('offline');}
+  if(!j.ok){const er=new Error(j.error||'Mã không hợp lệ');er.srv=true;throw er;}return j;
+}
+function saveLic(){try{localStorage.setItem(LIC_KEY,JSON.stringify(license));}catch(x){}}
 async function checkLicense(){
   let st=null;try{st=JSON.parse(localStorage.getItem(LIC_KEY)||'null');}catch(e){}
-  const codes=await loadCodes();
   if(!st)return lockApp('');
-  if(codes){const e=codes.find(x=>x.h===st.h);if(!e){localStorage.removeItem(LIC_KEY);return lockApp('Mã trên máy này đã bị thu hồi. Vui lòng nhập mã mới.');}
-    st={h:e.h,c:st.c||'',ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:st.at};try{localStorage.setItem(LIC_KEY,JSON.stringify(st));}catch(x){}}
-  if(st.han&&st.han<todayStr())return lockApp('Mã đã hết hạn ngày '+fmtD(st.han)+'. Vui lòng liên hệ để gia hạn.');
   if(CLOUD_URL&&!st.c)return lockApp('Vui lòng nhập lại mã một lần để bật đồng bộ với chủ xưởng.');
+  if(st.han&&st.han<todayStr())return lockApp('Mã đã hết hạn ngày '+fmtD(st.han)+'. Vui lòng liên hệ để gia hạn.');
   license=st;unlockApp();cloudStart();
+  // kiểm tra lại với máy chủ ở chế độ nền (mất mạng thì vẫn cho dùng)
+  if(CLOUD_URL){try{const j=await serverCheck(st.c);license=Object.assign({},st,{ten:j.ten||st.ten,han:j.han||'',admin:!!j.admin});saveLic();renderLicense();$('hMode').classList.toggle('hide',!license.admin);}
+    catch(e){if(e.srv){localStorage.removeItem(LIC_KEY);license=null;lockApp(/hết hạn/i.test(e.message)?e.message+'. Vui lòng liên hệ chủ xưởng.':'Mã trên máy này đã bị thu hồi. Vui lòng nhập mã mới.');}}}
+  else{const codes=await loadCodes();if(codes&&!codes.find(x=>x.h===st.h)){localStorage.removeItem(LIC_KEY);license=null;lockApp('Mã trên máy này đã bị thu hồi. Vui lòng nhập mã mới.');}}
 }
 async function activate(){
   const raw=$('gCode').value;if(normCode(raw).length<6){$('gMsg').textContent='Hãy nhập đầy đủ mã.';return;}
-  $('gBtn').disabled=true;$('gMsg').textContent='';
-  try{const codes=codeList||await loadCodes();if(!codes){$('gMsg').textContent='Cần có mạng để kích hoạt lần đầu. Hãy kết nối mạng rồi thử lại.';return;}
-    const h=await hashCode(raw),e=codes.find(x=>x.h===h);
-    if(!e){$('gMsg').textContent='Mã không đúng. Kiểm tra lại hoặc liên hệ chủ xưởng.';return;}
-    if(e.han&&e.han<todayStr()){$('gMsg').textContent='Mã này đã hết hạn ngày '+fmtD(e.han)+'.';return;}
-    license={h,c:normCode(raw),ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:new Date().toISOString()};
-    try{localStorage.setItem(LIC_KEY,JSON.stringify(license));}catch(x){}
-    $('gCode').value='';unlockApp();cloudStart();
+  $('gBtn').disabled=true;$('gMsg').textContent='Đang kiểm tra mã…';
+  try{const h=await hashCode(raw);let info=null;
+    if(CLOUD_URL){try{const j=await serverCheck(raw);info={ten:j.ten,han:j.han,admin:j.admin};}
+      catch(e){if(e.srv){$('gMsg').textContent=/hết hạn/i.test(e.message)?e.message+'.':'Mã không đúng hoặc đã bị thu hồi. Kiểm tra lại hoặc liên hệ chủ xưởng.';return;}}}
+    if(!info){const codes=codeList||await loadCodes();const e=codes&&codes.find(x=>x.h===h);
+      if(!codes){$('gMsg').textContent='Cần có mạng để kích hoạt lần đầu. Hãy kết nối mạng rồi thử lại.';return;}
+      if(!e){$('gMsg').textContent='Không kiểm tra được mã (mạng yếu?). Hãy thử lại khi có mạng.';return;}
+      if(e.han&&e.han<todayStr()){$('gMsg').textContent='Mã này đã hết hạn ngày '+fmtD(e.han)+'.';return;}
+      info=e;}
+    license={h,c:normCode(raw),ten:info.ten||'',han:info.han||'',admin:!!info.admin,at:new Date().toISOString()};saveLic();
+    $('gCode').value='';$('gMsg').textContent='';unlockApp();cloudStart();
   }finally{$('gBtn').disabled=false;}
 }
 $('gBtn').onclick=activate;$('gCode').addEventListener('keydown',e=>{if(e.key==='Enter')activate();});$('gCode').addEventListener('input',()=>{$('gMsg').textContent='';});
-let editCodes=null,codeBook={},openCode=-1;
+let editCodes=null,openCode=-1,codesLoading=false;
 const fmtCode=c=>{c=normCode(c);return c.length===11?c.slice(0,3)+'-'+c.slice(3,7)+'-'+c.slice(7):c;};
-try{codeBook=JSON.parse(localStorage.getItem('bg_codebook')||'{}')||{};}catch(e){codeBook={};}
-function saveBookLocal(){try{localStorage.setItem('bg_codebook',JSON.stringify(codeBook));}catch(e){}}
-let bookLoaded=false;
-async function loadCodeBook(){
-  if(license&&license.c&&license.h)codeBook[license.h]=license.c;
-  if(!CLOUD_URL||!license||!license.admin)return;
-  try{const j=await cloud('getCodeBook');const b=j.book||{};let add={};
-    for(const h in codeBook)if(!b[h])add[h]=codeBook[h];
-    Object.assign(codeBook,b);saveBookLocal();bookLoaded=true;
-    if(Object.keys(add).length)cloud('saveCodeBook',{book:add,names:Object.fromEntries((editCodes||[]).filter(x=>add[x.h]).map(x=>[x.h,x.ten||'']))}).catch(()=>{});
-  }catch(e){}
-  if(editCodes)renderCodeRows();
+async function loadCodeList(){
+  if(codesLoading)return;codesLoading=true;$('licLoad').textContent='Đang tải danh sách mã…';
+  try{const j=await cloud('listCodes');editCodes=(j.codes||[]).filter(c=>!c.revoked);$('licLoad').textContent='';}
+  catch(e){$('licLoad').textContent='Không tải được danh sách mã ('+e.message+'). Cần có mạng.';if(!editCodes)editCodes=[];}
+  finally{codesLoading=false;}
+  renderCodeRows();
 }
 function renderLicense(){
   if(!license)return;
   $('licInfo').innerHTML=`Máy này đang dùng mã của <b>${esc(license.ten||'—')}</b> · hạn dùng: <b>${esc(fmtD(license.han))}</b>${license.admin?' · <span class="tag">Chủ xưởng</span>':''}`;
   $('licAdmin').classList.toggle('hide',!license.admin);
-  if(license.admin){if(!editCodes)editCodes=JSON.parse(JSON.stringify(codeList||[]));renderCodeRows();if(!bookLoaded)loadCodeBook();}
+  if(license.admin&&!$('t-settings').classList.contains('hide'))loadCodeList();
 }
 function renderCodeRows(){
-  $('licRows').innerHTML=editCodes.map((c,i)=>{const code=codeBook[c.h]?fmtCode(codeBook[c.h]):'';
+  if(!editCodes)return;
+  $('licRows').innerHTML=editCodes.map((c,i)=>{const code=c.c?fmtCode(c.c):'';
     const row=`<tr class="lr${openCode===i?' open':''}" data-crow="${i}"><td><b>${esc(c.ten||'—')}</b></td><td class="cd">${code?(openCode===i?esc(code):'MOC-••••-'+esc(code.slice(-4))):'<span class="muted">—</span>'}</td><td>${esc(fmtD(c.han||''))}${c.han&&c.han<todayStr()?' <span class="tag" style="background:#fbeeea;color:var(--err)">Hết hạn</span>':''}</td><td>${c.admin?'Chủ xưởng':'Người dùng'}</td><td style="text-align:right">${c.h===license.h?'<span class="muted">Máy này</span>':`<button class="btn sm" data-revoke="${i}">Thu hồi</button>`}</td></tr>`;
-    const det=openCode!==i?'':`<tr class="lic-det"><td colspan="5">${code?`Mã của <b>${esc(c.ten||'')}</b>:<br><span class="codebox">${esc(code)}</span><br><button class="btn sm" data-ccopy="${esc(code)}"><svg><use href="#i-copy"/></svg>Sao chép mã</button> <button class="btn sm" data-cshare="${i}">Sao chép lời nhắn gửi kèm</button>`:'<span class="muted">Không có mã gốc của người này trên hệ thống (mã được tạo trước khi có tính năng lưu mã). Nếu cần, hãy thu hồi và tạo mã mới cho họ.</span>'}</td></tr>`;
-    return row+det;}).join('');
+    const det=openCode!==i?'':`<tr class="lic-det"><td colspan="5">${code?`Mã của <b>${esc(c.ten||'')}</b>:<br><span class="codebox">${esc(code)}</span><br><button class="btn sm" data-ccopy="${esc(code)}"><svg><use href="#i-copy"/></svg>Sao chép mã</button> <button class="btn sm" data-cshare="${i}">Sao chép lời nhắn gửi kèm</button>`:'<span class="muted">Không có mã gốc của người này trên hệ thống. Nếu cần, hãy thu hồi và tạo mã mới cho họ.</span>'}</td></tr>`;
+    return row+det;}).join('')||'<tr><td colspan="5" class="muted">Chưa có mã nào.</td></tr>';
 }
+function shareText(c){return `Chào ${c.ten||''}, đây là mã kích hoạt app báo giá: ${fmtCode(c.c)}\nMở link ${location.origin+location.pathname} rồi nhập mã để dùng.${c.han?'\nHạn dùng đến '+fmtD(c.han)+'.':''}`;}
+async function copyTxt(t,ok){try{await navigator.clipboard.writeText(t);msg('licMsg',ok,'o');}catch(x){msg('licMsg','Không sao chép được trên trình duyệt này, hãy chép tay.','e');}}
 document.addEventListener('click',async e=>{
-  const cp=e.target.closest('[data-ccopy]');if(cp){e.stopPropagation();try{await navigator.clipboard.writeText(cp.dataset.ccopy);msg('licMsg','Đã sao chép mã '+cp.dataset.ccopy,'o');}catch(x){msg('licMsg','Không sao chép được, hãy chép tay mã ở trên.','e');}return;}
-  const sh=e.target.closest('[data-cshare]');if(sh){const c=editCodes[+sh.dataset.cshare];const code=fmtCode(codeBook[c.h]||'');const t=`Chào ${c.ten||''}, đây là mã kích hoạt app báo giá: ${code}\nMở link ${location.origin+location.pathname} rồi nhập mã để dùng.${c.han?'\nHạn dùng đến '+fmtD(c.han)+'.':''}`;try{await navigator.clipboard.writeText(t);msg('licMsg','Đã sao chép lời nhắn, dán vào Zalo để gửi.','o');}catch(x){msg('licMsg','Không sao chép được trên trình duyệt này.','e');}return;}
-  if(e.target.closest('[data-revoke]'))return;
+  const cp=e.target.closest('[data-ccopy]');if(cp){e.stopPropagation();copyTxt(cp.dataset.ccopy,'Đã sao chép mã '+cp.dataset.ccopy);return;}
+  const sh=e.target.closest('[data-cshare]');if(sh){const c=sh.dataset.cshare==='new'?lastNew:editCodes[+sh.dataset.cshare];if(c)copyTxt(shareText(c),'Đã sao chép lời nhắn, dán vào Zalo để gửi.');return;}
+  const rv=e.target.closest('[data-revoke]');
+  if(rv){const i=+rv.dataset.revoke;
+    if(rv.dataset.confirm!=='1'){rv.dataset.confirm='1';rv.textContent='Bấm lại để thu hồi';setTimeout(()=>{if(rv.isConnected){rv.dataset.confirm='';rv.textContent='Thu hồi';}},3000);return;}
+    rv.disabled=true;rv.textContent='Đang thu hồi…';
+    try{await cloud('revokeCode',{h:editCodes[i].h});const t=editCodes[i].ten;editCodes.splice(i,1);openCode=-1;renderCodeRows();msg('licMsg','Đã thu hồi mã của '+t+'. Máy của họ sẽ bị khóa ở lần mở app tiếp theo (khi có mạng).','o');}
+    catch(x){rv.disabled=false;rv.textContent='Thu hồi';msg('licMsg','Không thu hồi được: '+x.message,'e');}
+    return;}
   const r=e.target.closest('[data-crow]');if(!r)return;const i=+r.dataset.crow;openCode=openCode===i?-1:i;renderCodeRows();
 });
-const CODE_AB='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function newCode(){const r=crypto.getRandomValues(new Uint8Array(8));const s=Array.from(r).map(x=>CODE_AB[x%CODE_AB.length]).join('');return 'MOC-'+s.slice(0,4)+'-'+s.slice(4);}
-function codesJSON(){return '[\n'+editCodes.map(c=>'  '+JSON.stringify(c)).join(',\n')+'\n]\n';}
+let lastNew=null;
 $('nmCreate').onclick=async()=>{
   const ten=$('nmName').value.trim();if(!ten){msg('licMsg','Nhập tên người dùng trước.','e');$('nmName').focus();return;}
-  const code=newCode(),h=await hashCode(code),han=$('nmExp').value||'';
-  const o={h,ten};if(han)o.han=han;editCodes.push(o);codeBook[h]=normCode(code);saveBookLocal();openCode=-1;renderCodeRows();
-  if(CLOUD_URL)cloud('saveCodeBook',{book:{[h]:normCode(code)},names:{[h]:ten}}).catch(()=>msg('licMsg','Chưa lưu được mã lên máy chủ (mất mạng?). Mã vẫn được giữ trên máy này.','e'));
-  $('nmNew').className='msg o';$('nmNew').innerHTML=`Mã cho <b>${esc(ten)}</b>: <span class="codebox">${code}</span><br>Mã đã được lưu, bấm vào tên người dùng trong danh sách để xem lại bất cứ lúc nào. Sau đó bấm <b>Sao chép codes.json</b> và dán vào GitHub.`;
-  $('nmName').value='';$('nmExp').value='';
+  const han=$('nmExp').value||'';$('nmCreate').disabled=true;$('nmCreate').textContent='Đang tạo…';
+  try{const j=await cloud('createCode',{ten,han});lastNew={h:j.h,c:j.code,ten,han,admin:false};
+    if(editCodes)editCodes.push(lastNew);openCode=-1;renderCodeRows();
+    $('nmNew').className='msg o';$('nmNew').innerHTML=`Mã cho <b>${esc(ten)}</b>: <span class="codebox">${esc(j.code)}</span><br>Mã <b>dùng được ngay</b>. Gửi mã này cho ${esc(ten)} để họ nhập vào app. <button class="btn sm" data-ccopy="${esc(j.code)}">Sao chép mã</button> <button class="btn sm" data-cshare="new">Sao chép lời nhắn gửi kèm</button>`;
+    $('nmName').value='';$('nmExp').value='';}
+  catch(e){msg('licMsg','Không tạo được mã: '+e.message+(/offline|fetch/i.test(e.message)?' (cần có mạng)':''),'e');}
+  finally{$('nmCreate').disabled=false;$('nmCreate').textContent='Tạo mã mới';}
 };
-document.addEventListener('click',e=>{const b=e.target.closest('[data-revoke]');if(!b)return;const i=+b.dataset.revoke;
-  if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Bấm lại để thu hồi';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='Thu hồi';}},3000);return;}
-  editCodes.splice(i,1);openCode=-1;renderCodeRows();msg('licMsg','Đã bỏ mã khỏi danh sách. Bấm Sao chép codes.json và dán vào GitHub để thu hồi thật.','o');});
-$('nmCopy').onclick=async()=>{try{await navigator.clipboard.writeText(codesJSON());msg('licMsg','Đã sao chép. Bấm "Mở codes.json trên GitHub", xóa hết nội dung cũ, dán vào rồi bấm Commit changes.','o');}catch(e){msg('licMsg','Không sao chép được trên trình duyệt này.','e');}};
 $('licOut').onclick=()=>{if($('licOut').dataset.confirm!=='1'){$('licOut').dataset.confirm='1';$('licOut').textContent='Bấm lại để xác nhận';setTimeout(()=>{$('licOut').dataset.confirm='';$('licOut').textContent='Thoát mã trên máy này';},3000);return;}
-  localStorage.removeItem(LIC_KEY);license=null;editCodes=null;bookLoaded=false;lockApp('Đã thoát mã. Nhập mã để dùng lại.');};
+  localStorage.removeItem(LIC_KEY);license=null;editCodes=null;lockApp('Đã thoát mã. Nhập mã để dùng lại.');};
 checkLicense();
 
 /* init */
