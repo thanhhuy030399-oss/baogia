@@ -450,6 +450,12 @@ function newQuote(){
   q={id:no,customer:{name:'',phone:'',addr:''},date:d.toISOString().slice(0,10),items:[],acc:[],disc:0,vat:8,ship:0,note:DEFAULT_NOTE,dimUnit:lastUnit};
   loadQuoteToForm();
 }
+const DRAFT_KEY='bg_draft';let draftLast='';
+function saveDraft(){if(!q)return;try{readForm();const j=JSON.stringify(q);if(j!==draftLast){localStorage.setItem(DRAFT_KEY,j);draftLast=j;}}catch(e){}}
+function loadDraft(){try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');if(d&&d.id&&Array.isArray(d.items)){d.acc=d.acc||[];d.customer=d.customer||{name:'',phone:'',addr:''};q=d;loadQuoteToForm();draftLast=JSON.stringify(q);return true;}}catch(e){}return false;}
+setInterval(saveDraft,1500);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDraft();});
+window.addEventListener('pagehide',saveDraft);
 function loadQuoteToForm(){
   $('qNo').textContent=q.id;
   $('cName').value=q.customer.name;$('cPhone').value=q.customer.phone;$('cAddr').value=q.customer.addr;$('cDate').value=q.date;
@@ -865,9 +871,35 @@ async function makePages(){
   if(!window.html2canvas||!window.jspdf)throw new Error('Chưa tải được thư viện tạo PDF, thử lại sau giây lát');
   buildDoc();
   try{await document.fonts.ready;}catch(e){}
-  const canvas=await html2canvas($('doc'),{scale:2,backgroundColor:'#ffffff',useCORS:true});
-  const pagePx=Math.floor(canvas.width*297/210),pages=[];
-  for(let y=0;y<canvas.height;y+=pagePx){const c=document.createElement('canvas');c.width=canvas.width;c.height=Math.min(pagePx,canvas.height-y);c.getContext('2d').drawImage(canvas,0,y,c.width,c.height,0,0,c.width,c.height);pages.push(c);}
+  const doc=$('doc');
+  const canvas=await html2canvas(doc,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+  const W=canvas.width,H=canvas.height,k=W/doc.offsetWidth,pagePx=Math.floor(W*297/210);
+  const top0=doc.getBoundingClientRect().top,Y=el=>(el.getBoundingClientRect().top-top0)*k,YB=el=>(el.getBoundingClientRect().bottom-top0)*k;
+  // các vị trí được phép cắt trang: giữa các dòng của bảng và giữa các khối nội dung
+  const cuts=new Set();
+  doc.querySelectorAll('tbody tr').forEach(tr=>{cuts.add(Math.round(Y(tr)));cuts.add(Math.round(YB(tr)));});
+  const tbl=doc.querySelector('table'),thead=doc.querySelector('thead');
+  if(tbl){let el=tbl;while(el&&el!==doc){let n=el.nextElementSibling;while(n){cuts.add(Math.round(Y(n)));n.querySelectorAll(':scope > *').forEach(x=>cuts.add(Math.round(Y(x))));n=n.nextElementSibling;}el=el.parentElement;}}
+  const C=[...cuts].filter(v=>v>0&&v<H).sort((a,b)=>a-b);
+  const hTop=thead?Math.round(Y(thead)):0,hBot=thead?Math.round(YB(thead)):0,tBot=tbl?Math.round(YB(tbl)):0;
+  const pad=Math.round(36*k),headH=hBot-hTop;
+  const segs=[];let y=0;
+  while(y<H-2){
+    const withHead=segs.length>0&&thead&&y>=hBot&&y<tBot-2;
+    const room=pagePx-(segs.length?pad:0)-(withHead?headH:0)-Math.round(28*k);
+    let end;
+    if(H-y<=room)end=H;
+    else{const ok=C.filter(c=>c>y+room*0.25&&c<=y+room);end=ok.length?ok[ok.length-1]:y+room;}
+    segs.push({y,end,withHead});y=end;
+  }
+  const pages=segs.map((sg,i)=>{
+    const c=document.createElement('canvas');c.width=W;c.height=pagePx;const g=c.getContext('2d');
+    g.fillStyle='#ffffff';g.fillRect(0,0,W,pagePx);
+    let dy=i?pad:0;
+    if(sg.withHead){g.drawImage(canvas,0,hTop,W,headH,0,dy,W,headH);dy+=headH;}
+    g.drawImage(canvas,0,sg.y,W,sg.end-sg.y,0,dy,W,sg.end-sg.y);
+    if(segs.length>1){g.fillStyle='#999999';g.font=Math.round(10*k)+'px sans-serif';g.textAlign='right';g.fillText('Trang '+(i+1)+'/'+segs.length,W-Math.round(48*k),pagePx-Math.round(14*k));}
+    return c;});
   return pages;
 }
 async function savePdf(pages){
@@ -973,7 +1005,23 @@ function makeLocalDB(){
   return {doc,collection:col=>Object.assign(query(col),{doc:id=>doc(col+'/'+id)})};
 }
 const localAssets={async upload(blob){const id='i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);await IDB.put(id,blob);imgCache[id]=URL.createObjectURL(blob);return {id,url:imgCache[id],sizeBytes:blob.size,contentType:blob.type};}};
-const localDownloads={async save({filename,data}){const b=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);return {status:'saved'};}};
+const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function shareSheet(file){
+  return new Promise((res,rej)=>{
+    const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px;max-width:340px;width:100%;text-align:center"><div style="font-weight:700;font-size:16px;margin-bottom:6px">File đã sẵn sàng</div><div class="muted" style="font-size:13px;margin-bottom:16px;word-break:break-all">${esc(file.name)}</div><button class="btn p full" data-go style="width:100%;justify-content:center">Lưu vào Tệp / Chia sẻ</button><button class="btn full" data-x style="width:100%;justify-content:center;margin-top:8px">Đóng</button><div class="muted" style="font-size:12px;margin-top:10px">Chọn <b>Lưu vào Tệp</b> để lưu file, hoặc gửi thẳng qua Zalo, Mail…</div></div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('[data-x]').onclick=()=>{ov.remove();res({status:'closed'});};
+    ov.querySelector('[data-go]').onclick=async()=>{try{await navigator.share({files:[file],title:file.name});ov.remove();res({status:'saved'});}catch(e){if(e&&e.name==='AbortError')return;ov.remove();openBlob(file);res({status:'saved'});}};
+  });
+}
+function openBlob(b){const u=URL.createObjectURL(b);const w=window.open(u,'_blank');if(!w)location.href=u;setTimeout(()=>URL.revokeObjectURL(u),120000);}
+const localDownloads={async save({filename,data}){
+  if(IS_IOS){const type=/\.pdf$/i.test(filename)?'application/pdf':/\.xlsx$/i.test(filename)?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':/\.json$/i.test(filename)?'application/json':'application/octet-stream';
+    const file=new File([data],filename,{type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:filename});return {status:'saved'};}catch(e){if(e&&e.name==='AbortError')return {status:'saved'};return shareSheet(file);}}
+    openBlob(file);return {status:'saved'};}
+const b=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);return {status:'saved'};}};
 /* backup / restore */
 const blobToDataURL=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b);});
 async function exportBackup(){
@@ -1166,7 +1214,7 @@ try{const a=JSON.parse(localStorage.getItem('bg_areas')||'null');if(Array.isArra
 (async()=>{
   try{await IDB.open();const imgs=await IDB.all();for(const k in imgs)imgCache[k]=URL.createObjectURL(imgs[k]);}catch(e){$('dbNote').textContent='Trình duyệt này không lưu được ảnh.';}
   db=makeLocalDB();assets=localAssets;downloads=localDownloads;
-  applyPricing();newQuote();
+  applyPricing();if(!loadDraft())newQuote();
   db.doc('settings/brands').onSnapshot(s=>{if(s.exists){const d=s.data();if(d&&Array.isArray(d.list)){presets=JSON.parse(JSON.stringify(d.list));if(!savingPreset)renderPresets();}}});
   db.doc('lists/areas').onSnapshot(s=>{if(s.exists){const d=s.data();if(d&&Array.isArray(d.names)){areaList=d.names.slice();if(!addingArea)renderChips();}}});
   db.doc('settings/pricing').onSnapshot(s=>{

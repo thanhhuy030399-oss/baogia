@@ -1,5 +1,5 @@
 /* Service worker: chạy được khi không có mạng */
-const VERSION = 'baogia-v6';
+const VERSION = 'baogia-v7';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const CDN = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
