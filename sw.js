@@ -1,5 +1,5 @@
 /* Service worker: chạy được khi không có mạng */
-const VERSION = 'baogia-v1';
+const VERSION = 'baogia-v2';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const CDN = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
@@ -17,6 +17,12 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(VERSION).then(c => c.put('./index.html', cp)); return r; })
       .catch(() => caches.match('./index.html')));
+    return;
+  }
+  // Danh sách mã: luôn lấy bản mới nhất, mất mạng thì dùng bản đã lưu
+  if (url.origin === location.origin && url.pathname.endsWith('codes.json')) {
+    e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(VERSION).then(c => c.put('./codes.json', cp)); return r; })
+      .catch(() => caches.match('./codes.json')));
     return;
   }
   // Thư viện, font, file của app: dùng bản đã lưu, đồng thời cập nhật ngầm

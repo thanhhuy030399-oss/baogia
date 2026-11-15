@@ -117,6 +117,16 @@ td input,td select{margin:0;padding:7px 9px}
 .stat span{display:block;font-size:12px;color:var(--mute)}
 .stat b{font-size:16px;font-weight:600}
 .mbar{display:none}
+.gate{position:fixed;inset:0;z-index:200;background:var(--bg);display:grid;place-items:center;padding:20px;overflow:auto}
+.gcard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:32px 28px;width:min(400px,100%);text-align:center}
+.gcard .gl{width:64px;height:64px;border-radius:16px;background:var(--dark);display:grid;place-items:center;margin:0 auto 14px}
+.gcard .gl svg{width:34px;height:34px;color:#f3ece0}
+.gcard h2{margin:0 0 6px;font-size:20px}
+.gcard input{text-align:center;font-size:18px;letter-spacing:2px;text-transform:uppercase;margin:18px 0 10px}
+body.locked>header,body.locked>main,body.locked .mbar{display:none!important}
+.lic-list{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+.lic-list td,.lic-list th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.codebox{font-family:var(--mono,monospace);font-size:20px;letter-spacing:2px;background:var(--acc-bg);color:var(--acc-d);padding:10px 14px;border-radius:10px;display:inline-block;margin:6px 0}
 .top{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start}
 .top>.card{height:calc(100% - 18px)}
 .sumgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:32px;align-items:start}
@@ -190,7 +200,16 @@ body.dragmode{cursor:grabbing;user-select:none}
 }
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="gate" class="gate"><div class="gcard">
+  <div class="gl"><svg><use href="#i-lock"/></svg></div>
+  <h2>Báo giá nội thất</h2>
+  <p class="muted" style="margin:0">Nhập mã kích hoạt để sử dụng ứng dụng.</p>
+  <input id="gCode" placeholder="MOC-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Mã kích hoạt">
+  <button class="btn p w" id="gBtn">Kích hoạt</button>
+  <div class="msg e" id="gMsg" style="min-height:20px"></div>
+  <p class="muted" style="font-size:12px;margin:8px 0 0">Chưa có mã? Liên hệ chủ xưởng để được cấp.</p>
+</div></div>
 <svg width="0" height="0" style="position:absolute">
  <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13h6M9 17h6"/></symbol>
  <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"/><path d="M3 6v5.2a2 2 0 0 0 .6 1.4l8.7 8.7a2 2 0 0 0 2.8 0l5.2-5.2a2 2 0 0 0 0-2.8L11.6 4.6A2 2 0 0 0 10.2 4H5a2 2 0 0 0-2 2z"/></symbol>
@@ -205,6 +224,7 @@ body.dragmode{cursor:grabbing;user-select:none}
  <symbol id="i-xls" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 12l4 5M13 12l-4 5"/></symbol>
  <symbol id="i-gs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M8 11h8v6H8zM8 14h8M12 11v6"/></symbol>
  <symbol id="i-grip" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
  <symbol id="i-sofa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a2 2 0 0 1 2 2v1h12v-1a2 2 0 1 1 4 0v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2"/><path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3M12 5v9"/></symbol>
 </svg>
 
@@ -350,6 +370,20 @@ body.dragmode{cursor:grabbing;user-select:none}
     <p class="muted" style="margin-top:-8px">Dữ liệu (bảng giá, mẫu thương hiệu, lịch sử báo giá, ảnh) được lưu ngay trên máy này. Hãy sao lưu định kỳ, hoặc dùng file sao lưu để chuyển sang điện thoại/máy tính khác.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="bkExport"><svg><use href="#i-pdf"/></svg>Tải file sao lưu</button><button class="btn" id="bkImport"><svg><use href="#i-new"/></svg>Khôi phục từ file</button><input type="file" id="bkFile" accept=".json,application/json" class="hide"></div>
     <div class="msg" id="bkMsg"></div>
+  </div>
+  <div class="card" id="licCard">
+    <div class="ch"><h2>Mã kích hoạt</h2></div>
+    <div id="licInfo" class="muted"></div>
+    <div style="margin-top:10px"><button class="btn sm" id="licOut">Thoát mã trên máy này</button></div>
+    <div id="licAdmin" class="hide" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+      <h3 style="font-size:15px;margin:0 0 6px">Quản lý mã (chỉ chủ xưởng)</h3>
+      <p class="muted" style="margin:0 0 10px">Tạo hoặc thu hồi mã ở đây, rồi bấm <b>Sao chép codes.json</b> và dán vào file <b>codes.json</b> trên GitHub. Thay đổi có hiệu lực sau khi lưu file (người dùng mở lại app có mạng).</p>
+      <div class="grid"><label>Tên người dùng<input id="nmName" placeholder="Anh Tuấn - thợ đo"></label><label>Hạn dùng (để trống = không hạn)<input id="nmExp" type="date"></label></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn p" id="nmCreate">Tạo mã mới</button><button class="btn" id="nmCopy">Sao chép codes.json</button><a class="btn" id="nmEdit" href="https://github.com/thanhhuy030399-oss/baogia/edit/main/codes.json" target="_blank" rel="noopener" style="text-decoration:none">Mở codes.json trên GitHub</a></div>
+      <div id="nmNew" class="msg"></div>
+      <table class="lic-list"><thead><tr><th>Người dùng</th><th>Hạn dùng</th><th>Quyền</th><th></th></tr></thead><tbody id="licRows"></tbody></table>
+      <div class="msg" id="licMsg"></div>
+    </div>
   </div>
   <div style="display:flex;justify-content:flex-end"><button class="btn p" id="savePrices"><svg><use href="#i-save"/></svg>Lưu bảng giá</button></div>
   <div class="msg" id="pMsg" style="text-align:right"></div>
@@ -933,15 +967,15 @@ const localDownloads={async save({filename,data}){const b=data instanceof Blob?d
 const blobToDataURL=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b);});
 async function exportBackup(){
   const data={app:'bao-gia-noi-that',version:1,at:new Date().toISOString(),ls:{},images:{}};
-  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith(LS)||k.startsWith('bg_')))data.ls[k]=localStorage.getItem(k);}
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k!=='bg_license'&&(k.startsWith(LS)||k.startsWith('bg_')))data.ls[k]=localStorage.getItem(k);}
   const imgs=await IDB.all();for(const k in imgs)data.images[k]=await blobToDataURL(imgs[k]);
   const d=new Date(),stamp=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
   await localDownloads.save({filename:'sao-luu-bao-gia-'+stamp+'.json',data:new Blob([JSON.stringify(data)],{type:'application/json'})});
 }
 async function importBackup(file){
   const data=JSON.parse(await file.text());if(!data||data.app!=='bao-gia-noi-that')throw new Error('File không phải bản sao lưu của ứng dụng này');
-  const rm=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k.startsWith(LS)||k.startsWith('bg_')))rm.push(k);}rm.forEach(k=>localStorage.removeItem(k));
-  for(const k in data.ls)localStorage.setItem(k,data.ls[k]);
+  const rm=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k!=='bg_license'&&(k.startsWith(LS)||k.startsWith('bg_')))rm.push(k);}rm.forEach(k=>localStorage.removeItem(k));
+  for(const k in data.ls)if(k!=='bg_license')localStorage.setItem(k,data.ls[k]);
   await IDB.clear();for(const k in data.images){const b=await (await fetch(data.images[k])).blob();await IDB.put(k,b);}
 }
 function doBackup(msgId){exportBackup().then(()=>msg(msgId,'Đã tải file sao lưu. Hãy cất file này ở nơi an toàn (Zalo, Google Drive, email…).','o')).catch(err=>msg(msgId,'Không sao lưu được ('+(err&&err.message||'lỗi')+').','e'));}
@@ -959,6 +993,66 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPro
 $('installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();try{await deferredPrompt.userChoice;}catch(e){}deferredPrompt=null;$('installBtn').classList.add('hide');};
 if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
+
+/* ===== License codes (mức 1: kiểm tra trên máy) ===== */
+const LIC_KEY='bg_license',SALT='baogia-moc|';
+const normCode=c=>String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+async function hashCode(c){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(SALT+normCode(c)));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const fmtD=d=>d?d.split('-').reverse().join('/'):'không giới hạn';
+let codeList=null,license=null;
+async function loadCodes(){try{const r=await fetch('codes.json?t='+Date.now(),{cache:'no-store'});if(r.ok){const j=await r.json();if(Array.isArray(j)){codeList=j;return j;}}}catch(e){}return null;}
+function lockApp(m){document.body.classList.add('locked');$('gate').classList.remove('hide');$('gMsg').textContent=m||'';setTimeout(()=>{try{$('gCode').focus();}catch(e){}},50);}
+function unlockApp(){document.body.classList.remove('locked');$('gate').classList.add('hide');renderLicense();}
+async function checkLicense(){
+  let st=null;try{st=JSON.parse(localStorage.getItem(LIC_KEY)||'null');}catch(e){}
+  const codes=await loadCodes();
+  if(!st)return lockApp('');
+  if(codes){const e=codes.find(x=>x.h===st.h);if(!e){localStorage.removeItem(LIC_KEY);return lockApp('Mã trên máy này đã bị thu hồi. Vui lòng nhập mã mới.');}
+    st={h:e.h,ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:st.at};try{localStorage.setItem(LIC_KEY,JSON.stringify(st));}catch(x){}}
+  if(st.han&&st.han<todayStr())return lockApp('Mã đã hết hạn ngày '+fmtD(st.han)+'. Vui lòng liên hệ để gia hạn.');
+  license=st;unlockApp();
+}
+async function activate(){
+  const raw=$('gCode').value;if(normCode(raw).length<6){$('gMsg').textContent='Hãy nhập đầy đủ mã.';return;}
+  $('gBtn').disabled=true;$('gMsg').textContent='';
+  try{const codes=codeList||await loadCodes();if(!codes){$('gMsg').textContent='Cần có mạng để kích hoạt lần đầu. Hãy kết nối mạng rồi thử lại.';return;}
+    const h=await hashCode(raw),e=codes.find(x=>x.h===h);
+    if(!e){$('gMsg').textContent='Mã không đúng. Kiểm tra lại hoặc liên hệ chủ xưởng.';return;}
+    if(e.han&&e.han<todayStr()){$('gMsg').textContent='Mã này đã hết hạn ngày '+fmtD(e.han)+'.';return;}
+    license={h,ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:new Date().toISOString()};
+    try{localStorage.setItem(LIC_KEY,JSON.stringify(license));}catch(x){}
+    $('gCode').value='';unlockApp();
+  }finally{$('gBtn').disabled=false;}
+}
+$('gBtn').onclick=activate;$('gCode').addEventListener('keydown',e=>{if(e.key==='Enter')activate();});$('gCode').addEventListener('input',()=>{$('gMsg').textContent='';});
+let editCodes=null;
+function renderLicense(){
+  if(!license)return;
+  $('licInfo').innerHTML=`Máy này đang dùng mã của <b>${esc(license.ten||'—')}</b> · hạn dùng: <b>${esc(fmtD(license.han))}</b>${license.admin?' · <span class="tag">Chủ xưởng</span>':''}`;
+  $('licAdmin').classList.toggle('hide',!license.admin);
+  if(license.admin){if(!editCodes)editCodes=JSON.parse(JSON.stringify(codeList||[]));renderCodeRows();}
+}
+function renderCodeRows(){
+  $('licRows').innerHTML=editCodes.map((c,i)=>`<tr><td>${esc(c.ten||'—')}</td><td>${esc(fmtD(c.han||''))}${c.han&&c.han<todayStr()?' <span class="tag" style="background:#fbeeea;color:var(--err)">Hết hạn</span>':''}</td><td>${c.admin?'Chủ xưởng':'Người dùng'}</td><td style="text-align:right">${c.h===license.h?'<span class="muted">Máy này</span>':`<button class="btn sm" data-revoke="${i}">Thu hồi</button>`}</td></tr>`).join('');
+}
+const CODE_AB='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode(){const r=crypto.getRandomValues(new Uint8Array(8));const s=Array.from(r).map(x=>CODE_AB[x%CODE_AB.length]).join('');return 'MOC-'+s.slice(0,4)+'-'+s.slice(4);}
+function codesJSON(){return '[\n'+editCodes.map(c=>'  '+JSON.stringify(c)).join(',\n')+'\n]\n';}
+$('nmCreate').onclick=async()=>{
+  const ten=$('nmName').value.trim();if(!ten){msg('licMsg','Nhập tên người dùng trước.','e');$('nmName').focus();return;}
+  const code=newCode(),h=await hashCode(code),han=$('nmExp').value||'';
+  const o={h,ten};if(han)o.han=han;editCodes.push(o);renderCodeRows();
+  $('nmNew').className='msg o';$('nmNew').innerHTML=`Mã cho <b>${esc(ten)}</b>: <span class="codebox">${code}</span><br>Hãy ghi lại và gửi mã này cho người dùng (app không lưu mã gốc). Sau đó bấm <b>Sao chép codes.json</b> và dán vào GitHub.`;
+  $('nmName').value='';$('nmExp').value='';
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-revoke]');if(!b)return;const i=+b.dataset.revoke;
+  if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Bấm lại để thu hồi';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='Thu hồi';}},3000);return;}
+  editCodes.splice(i,1);renderCodeRows();msg('licMsg','Đã bỏ mã khỏi danh sách. Bấm Sao chép codes.json và dán vào GitHub để thu hồi thật.','o');});
+$('nmCopy').onclick=async()=>{try{await navigator.clipboard.writeText(codesJSON());msg('licMsg','Đã sao chép. Bấm "Mở codes.json trên GitHub", xóa hết nội dung cũ, dán vào rồi bấm Commit changes.','o');}catch(e){msg('licMsg','Không sao chép được trên trình duyệt này.','e');}};
+$('licOut').onclick=()=>{if($('licOut').dataset.confirm!=='1'){$('licOut').dataset.confirm='1';$('licOut').textContent='Bấm lại để xác nhận';setTimeout(()=>{$('licOut').dataset.confirm='';$('licOut').textContent='Thoát mã trên máy này';},3000);return;}
+  localStorage.removeItem(LIC_KEY);license=null;editCodes=null;lockApp('Đã thoát mã. Nhập mã để dùng lại.');};
+checkLicense();
 
 /* init */
 try{const a=JSON.parse(localStorage.getItem('bg_areas')||'null');if(Array.isArray(a))areaList=a;}catch(e){}
