@@ -318,7 +318,7 @@ body.dragmode{cursor:grabbing;user-select:none}
       <button class="btn" id="bkQ"><svg><use href="#i-save"/></svg>Sao lưu dữ liệu</button>
       <button class="btn full" id="newQ"><svg><use href="#i-new"/></svg>Báo giá mới</button>
     </div>
-     <div class="msg" id="qMsg"></div>
+     <div class="msg" id="qMsg"></div><div class="muted" id="syncNote" style="font-size:12px"></div>
     </div>
    </div>
   </div>
@@ -393,6 +393,7 @@ body.dragmode{cursor:grabbing;user-select:none}
 <section id="t-history" class="hide">
   <div class="card">
     <div class="ch"><h2>Báo giá đã lưu</h2><span class="r muted" id="hCount"></span></div>
+    <div class="unitsw hide" id="hMode" style="margin-bottom:12px"><button data-hm="local" class="on">Trên máy này</button><button data-hm="team">Toàn xưởng</button><span class="muted" id="hTeamNote" style="margin-left:8px"></span></div>
     <input id="hSearch" placeholder="Tìm theo tên khách, số điện thoại hoặc mã báo giá" style="max-width:420px;margin:0 0 12px">
     <div class="scroll"><table id="hTbl"><thead><tr><th>Mã</th><th>Ngày</th><th>Khách hàng</th><th class="n">Tổng tiền</th><th></th></tr></thead><tbody></tbody></table></div>
     <div class="empty" id="hEmpty"><svg><use href="#i-hist"/></svg>Chưa có báo giá nào được lưu.</div>
@@ -690,10 +691,11 @@ $('savePrices').onclick=async()=>{
   const materials=rows('mTbl').map(r=>({name:r.cells[0].querySelector('input').value.trim(),k:Math.max(0,+r.cells[1].querySelector('input').value||0)})).filter(m=>m.name);
   const accessories=rows('aTbl').map(r=>{const o={name:r.cells[1].querySelector('input').value.trim(),price:Math.max(0,Math.round(+r.cells[2].querySelector('input').value||0))};const im=r.cells[0].querySelector('.pimg').dataset.img;if(im)o.img=im;return o;}).filter(a=>a.name);
   if(!products.length||!materials.length){msg('pMsg','Cần ít nhất 1 sản phẩm và 1 vật liệu.','e');return;}
+  if(CLOUD_URL&&license&&!license.admin){msg('pMsg','Bảng giá do chủ xưởng quản lý và tự đồng bộ về máy này, bạn không sửa được.','e');return;}
   pricing={company:companyFromForm(),products,materials,accessories};
   applyPricing();
   if(!db){msg('pMsg','Đã áp dụng cho phiên này, nhưng chưa lưu lâu dài được.','e');return;}
-  try{await db.doc('settings/pricing').set(pricing);$('dbNote').textContent='';msg('pMsg','Đã lưu bảng giá.','o');}
+  try{await db.doc('settings/pricing').set(pricing);$('dbNote').textContent='';msg('pMsg','Đã lưu bảng giá.','o');if(CLOUD_URL&&license&&license.admin)pushPricing();}
   catch(err){msg('pMsg','Không lưu được ('+(err&&err.code||'lỗi')+'). Bộ nhớ máy có thể đã đầy.','e');}
 };
 const SICON={
@@ -783,22 +785,23 @@ $('saveQ').onclick=async()=>{
   if(!q.items.length&&!q.acc.length){msg('qMsg','Báo giá chưa có hạng mục nào.','e');return;}
   if(!db){msg('qMsg','Không kết nối được bộ nhớ nên chưa lưu được.','e');return;}
   const t=totals();
-  try{await db.doc('quotes/'+q.id).set({...JSON.parse(JSON.stringify(q)),total:Math.round(t.total),savedAt:Date.now()});msg('qMsg','Đã lưu báo giá '+q.id+'.','o');}
+  try{await db.doc('quotes/'+q.id).set({...JSON.parse(JSON.stringify(q)),total:Math.round(t.total),savedAt:Date.now()});if(CLOUD_URL){queueQuote(q.id);msg('qMsg','Đã lưu báo giá '+q.id+'. Đang gửi về chủ xưởng…','o');flushOutbox(true);}else msg('qMsg','Đã lưu báo giá '+q.id+'.','o');}
   catch(err){msg('qMsg','Không lưu được ('+(err&&err.code||'lỗi')+').','e');}
 };
+let histMode='local',teamQuotes=[];
 function renderHistory(){
-  const s=$('hSearch').value.trim().toLowerCase();
-  const list=history.filter(h=>!s||[h.id,h.customer&&h.customer.name,h.customer&&h.customer.phone].join(' ').toLowerCase().includes(s));
-  $('hTbl').tBodies[0].innerHTML=list.map(h=>`<tr><td><span class="tag">${esc(h.id)}</span></td><td>${esc((h.date||'').split('-').reverse().join('/'))}</td><td><div class="iname">${esc(h.customer&&h.customer.name)}</div><div class="sub">${esc(h.customer&&h.customer.phone)}</div></td><td class="n"><b style="font-weight:600">${fmt(h.total)}</b></td><td class="n"><button class="btn" data-open="${esc(h.id)}" style="padding:6px 12px">Mở</button> <button class="x" data-delq="${esc(h.id)}" aria-label="Xóa">${TRASH}</button></td></tr>`).join('');
+  const s=$('hSearch').value.trim().toLowerCase(),team=histMode==='team',src=team?teamQuotes:history;
+  const list=src.filter(h=>!s||[h.id,h.customer&&h.customer.name,h.customer&&h.customer.phone,h.nguoiLam].join(' ').toLowerCase().includes(s));
+  $('hTbl').tBodies[0].innerHTML=list.map(h=>`<tr><td><span class="tag">${esc(h.id)}</span>${team?`<div class="sub" style="margin-top:4px">${esc(h.nguoiLam||'')}</div>`:''}</td><td>${esc((h.date||'').split('-').reverse().join('/'))}</td><td><div class="iname">${esc(h.customer&&h.customer.name)}</div><div class="sub">${esc(h.customer&&h.customer.phone)}</div></td><td class="n"><b style="font-weight:600">${fmt(h.total)}</b></td><td class="n"><button class="btn" data-open="${esc(h.id)}" data-src="${team?'team':'local'}" style="padding:6px 12px">Mở</button>${team?'':` <button class="x" data-delq="${esc(h.id)}" aria-label="Xóa">${TRASH}</button>`}</td></tr>`).join('');
   $('hTbl').classList.toggle('hide',!list.length);
   $('hEmpty').classList.toggle('hide',list.length>0);
-  $('hCount').textContent=history.length?history.length+' báo giá':'';
+  $('hCount').textContent=src.length?src.length+' báo giá':'';
 }
 $('hSearch').oninput=renderHistory;
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
   const o=b.dataset.open,d=b.dataset.delq;
-  if(o){const h=history.find(x=>x.id===o);if(!h)return;q=JSON.parse(JSON.stringify(h));delete q.total;delete q.savedAt;q.items=q.items||[];q.acc=q.acc||[];loadQuoteToForm();document.querySelector('nav button[data-t="quote"]').click();}
+  if(o){const h=(b.dataset.src==='team'?teamQuotes:history).find(x=>x.id===o);if(!h)return;q=JSON.parse(JSON.stringify(h));delete q.total;delete q.savedAt;q.items=q.items||[];q.acc=q.acc||[];loadQuoteToForm();document.querySelector('nav button[data-t="quote"]').click();}
   if(d){
     if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.innerHTML='Xóa?';setTimeout(()=>{b.dataset.confirm='';b.innerHTML=TRASH},3000);return;}
     try{await db.doc('quotes/'+d).delete();}catch(err){}
@@ -994,6 +997,54 @@ $('installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.promp
 if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
 
+/* ===== Đồng bộ với Google Sheets của chủ xưởng ===== */
+const CLOUD_URL='https://script.google.com/macros/s/AKfycby2rJ7BnSyw9wVeCVzDsdSXNp6VahfjvtO2DUawsG3vA1CicP08SkQR-zJW2Xg-A56UpA/exec';
+async function cloud(action,data){
+  if(!CLOUD_URL||!license||!license.c)throw new Error('Chưa bật đồng bộ');
+  const r=await fetch(CLOUD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,code:license.c},data||{}))});
+  const j=await r.json();if(!j.ok)throw new Error(j.error||'Lỗi máy chủ');return j;
+}
+const OB='bg_outbox';
+const getOutbox=()=>{try{return JSON.parse(localStorage.getItem(OB)||'[]');}catch(e){return [];}};
+const setOutbox=a=>{try{localStorage.setItem(OB,JSON.stringify(a));}catch(e){}};
+function queueQuote(id){const a=getOutbox();if(!a.includes(id))a.push(id);setOutbox(a);}
+let flushing=false;
+async function flushOutbox(report){
+  if(!CLOUD_URL||!license||flushing)return;const ids=getOutbox();if(!ids.length)return;flushing=true;let ok=0,fail='';
+  try{for(const id of ids){const s=await db.doc('quotes/'+id).get();if(!s.exists){setOutbox(getOutbox().filter(x=>x!==id));continue;}
+      try{await cloud('saveQuote',{quote:s.data()});ok++;setOutbox(getOutbox().filter(x=>x!==id));}catch(e){fail=e.message;break;}}}
+  finally{flushing=false;}
+  if(report){if(fail)msg('qMsg','Đã lưu trên máy. Chưa gửi được về chủ xưởng ('+fail+'), app sẽ tự gửi lại khi có mạng.','e');else if(ok)msg('qMsg','Đã lưu và gửi về chủ xưởng.','o');}
+  updateSyncNote();
+}
+function updateSyncNote(){const n=getOutbox().length;const el=$('syncNote');if(el)el.textContent=n?n+' báo giá chưa gửi về chủ xưởng (sẽ tự gửi khi có mạng).':'';}
+async function pullPricing(){
+  try{const j=await cloud('getPricing');if(!j.pricing||!(j.at>0))return;
+    const localAt=+(localStorage.getItem('bg_pricing_at')||0);if(j.at<=localAt)return;
+    const keep=(pricing&&pricing.company)||{};const p=j.pricing;p.company=p.company||{};
+    ['logo','img'].forEach(k=>{p.company[k]=keep[k]&&imgCache[keep[k]]?keep[k]:(p.company[k]&&imgCache[p.company[k]]?p.company[k]:'');});
+    await db.doc('settings/pricing').set(p);localStorage.setItem('bg_pricing_at',String(j.at));
+  }catch(e){}
+}
+async function pushPricing(){
+  try{const j=await cloud('setPricing',{pricing});localStorage.setItem('bg_pricing_at',String(j.at));msg('pMsg','Đã lưu bảng giá và gửi xuống tất cả các máy.','o');}
+  catch(e){msg('pMsg','Đã lưu trên máy này nhưng chưa gửi được xuống các máy khác ('+e.message+'). Bấm Lưu bảng giá lại khi có mạng.','e');}
+}
+async function loadTeam(){
+  $('hTeamNote').textContent='Đang tải…';
+  try{const j=await cloud('listQuotes');teamQuotes=j.quotes||[];$('hTeamNote').textContent='Cập nhật lúc '+new Date().toLocaleTimeString('vi-VN');}
+  catch(e){$('hTeamNote').textContent='Không tải được: '+e.message;}
+  renderHistory();
+}
+function cloudStart(){
+  if(!CLOUD_URL||!license)return;
+  if(!db){setTimeout(cloudStart,300);return;}
+  $('hMode').classList.toggle('hide',!license.admin);
+  pullPricing();flushOutbox(false);
+}
+window.addEventListener('online',()=>{flushOutbox(false);pullPricing();});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-hm]');if(!b)return;histMode=b.dataset.hm;document.querySelectorAll('[data-hm]').forEach(x=>x.classList.toggle('on',x===b));if(histMode==='team')loadTeam();else{$('hTeamNote').textContent='';renderHistory();}});
+
 /* ===== License codes (mức 1: kiểm tra trên máy) ===== */
 const LIC_KEY='bg_license',SALT='baogia-moc|';
 const normCode=c=>String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -1009,9 +1060,10 @@ async function checkLicense(){
   const codes=await loadCodes();
   if(!st)return lockApp('');
   if(codes){const e=codes.find(x=>x.h===st.h);if(!e){localStorage.removeItem(LIC_KEY);return lockApp('Mã trên máy này đã bị thu hồi. Vui lòng nhập mã mới.');}
-    st={h:e.h,ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:st.at};try{localStorage.setItem(LIC_KEY,JSON.stringify(st));}catch(x){}}
+    st={h:e.h,c:st.c||'',ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:st.at};try{localStorage.setItem(LIC_KEY,JSON.stringify(st));}catch(x){}}
   if(st.han&&st.han<todayStr())return lockApp('Mã đã hết hạn ngày '+fmtD(st.han)+'. Vui lòng liên hệ để gia hạn.');
-  license=st;unlockApp();
+  if(CLOUD_URL&&!st.c)return lockApp('Vui lòng nhập lại mã một lần để bật đồng bộ với chủ xưởng.');
+  license=st;unlockApp();cloudStart();
 }
 async function activate(){
   const raw=$('gCode').value;if(normCode(raw).length<6){$('gMsg').textContent='Hãy nhập đầy đủ mã.';return;}
@@ -1020,9 +1072,9 @@ async function activate(){
     const h=await hashCode(raw),e=codes.find(x=>x.h===h);
     if(!e){$('gMsg').textContent='Mã không đúng. Kiểm tra lại hoặc liên hệ chủ xưởng.';return;}
     if(e.han&&e.han<todayStr()){$('gMsg').textContent='Mã này đã hết hạn ngày '+fmtD(e.han)+'.';return;}
-    license={h,ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:new Date().toISOString()};
+    license={h,c:normCode(raw),ten:e.ten||'',han:e.han||'',admin:!!e.admin,at:new Date().toISOString()};
     try{localStorage.setItem(LIC_KEY,JSON.stringify(license));}catch(x){}
-    $('gCode').value='';unlockApp();
+    $('gCode').value='';unlockApp();cloudStart();
   }finally{$('gBtn').disabled=false;}
 }
 $('gBtn').onclick=activate;$('gCode').addEventListener('keydown',e=>{if(e.key==='Enter')activate();});$('gCode').addEventListener('input',()=>{$('gMsg').textContent='';});
